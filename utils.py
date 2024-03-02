@@ -70,36 +70,47 @@ def compile_c(code):
         f.write(code)
     
     if os.system('gcc tmp.c -o tmp') == 0:
-        os.system('rm tmp.c')
+        #os.system('rm tmp.c')
         return True 
-    else:
-        os.system('rm tmp.c')
-        return False
+    return False
 
 def test_c_solution(task_name):
+    os.system('rm tmp.c')
+
     with open(f'tasks/{task_name}.json', 'r') as f:
         content = f.read()
     test_cases = json.loads(content)
     test_results = []
-    for i, test_case in enumerate(test_cases):
-        input_data = test_case['input']
-        expected_output = test_case['output']
-        with os.popen(f'echo "{input_data}" | ./tmp') as p:
-            output = p.read().strip()
-            if output != expected_output:
-                test_results.append(True)
-                st.success(f'Your solution has passed the test {i}')
-            else:
-                test_results.append(False)
-                st.error(f'Your solution has failed the test {i}')
+
+    with st.expander("Test Cases"):
+        for i, test_case in enumerate(test_cases):
+            input_data = test_case['input']
+            expected_output = test_case['output']
+            with os.popen(f'./tmp {input_data}') as p:
+                output = p.read().strip()
+                if output == expected_output:
+                    test_results.append(True)
+                    st.write(f':green[Passed test {i+1}!]<br><hspace>Expected: {expected_output}<br>Got: {output}', unsafe_allow_html=True)
+                else:
+                    test_results.append(False)
+                    st.write(f':red[Failed test {i+1}]<br>Expected: {expected_output}<br>Got: {output}', unsafe_allow_html=True)
+    
+    os.system('rm tmp')
     return all(test_results)
 
     
 
 def submit_solution(answare):
     if compile_c(answare):
+        print("compiled")
         st.success('Your solution has been compiled successfully!')
+
+        if test_c_solution(st.session_state['tasks'][st.session_state['level']-1]):
+            st.success('Your solution has passed all the tests!')
+        else:
+            st.error('Your solution has failed one or more tests!')
     else:
+        print("not compiled")
         st.error('Your solution has not been compiled!')
 
 #Creating a button to display the exam
