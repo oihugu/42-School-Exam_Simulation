@@ -3,9 +3,10 @@
 import streamlit as st
 import random
 import os
+import json
 
 #A list of tasks for each level
-levels = {
+"""levels = {
     1: ['first_word', 'fizzbuzz', 'ft_strcpy', 'ft_strlen', 'ft_swap', 
         'ft_putstr', 'repeat_alpha', 'rev_print', 'rot_13', 'rotone', 
         'search_and_replace', 'ulstr'],
@@ -19,6 +20,14 @@ levels = {
         'str_capitalizer', 'tab_mult'],
     4: ['flood_fill', 'fprime', 'ft_itoa', 'ft_list_foreach', 'ft_list_remove_if',
         'ft_split', 'rev_wstr', 'rostring', 'sort_int_tab', 'sort_list',]
+}
+"""
+
+levels = {
+    1: ['rot_13','rot_13', 'rot_13', 'rot_13', 'rot_13'],
+    2: ['rot_13','rot_13', 'rot_13', 'rot_13', 'rot_13'],
+    3: ['rot_13','rot_13', 'rot_13', 'rot_13', 'rot_13'],
+    4: ['rot_13','rot_13', 'rot_13', 'rot_13', 'rot_13']
 }
 
 #Loading tasks from the tasks folder and displaying them in the app 
@@ -56,6 +65,43 @@ def start_exam(level, progress_bar):
         st.session_state['tasks'].append(task_name)
         progress_bar.progress(min(st.session_state['level'] / 4, 1))
 
+def compile_c(code):
+    with open('tmp.c', 'w') as f:
+        f.write(code)
+    
+    if os.system('gcc tmp.c -o tmp') == 0:
+        os.system('rm tmp.c')
+        return True 
+    else:
+        os.system('rm tmp.c')
+        return False
+
+def test_c_solution(task_name):
+    with open(f'tasks/{task_name}.json', 'r') as f:
+        content = f.read()
+    test_cases = json.loads(content)
+    test_results = []
+    for i, test_case in enumerate(test_cases):
+        input_data = test_case['input']
+        expected_output = test_case['output']
+        with os.popen(f'echo "{input_data}" | ./tmp') as p:
+            output = p.read().strip()
+            if output != expected_output:
+                test_results.append(True)
+                st.success(f'Your solution has passed the test {i}')
+            else:
+                test_results.append(False)
+                st.error(f'Your solution has failed the test {i}')
+    return all(test_results)
+
+    
+
+def submit_solution(answare):
+    if compile_c(answare):
+        st.success('Your solution has been compiled successfully!')
+    else:
+        st.error('Your solution has not been compiled!')
+
 #Creating a button to display the exam
 def display_exam():
     for i, task_name in enumerate(st.session_state['tasks'], start=1):
@@ -65,7 +111,9 @@ def display_exam():
         st.markdown(f'**Expected files:** {expected_files}\n', unsafe_allow_html=True)
         st.markdown(f'**Allowed functions:** {allowed_functions}\n', unsafe_allow_html=True) 
         st.markdown(f'**Description:**\n{description}\n', unsafe_allow_html=True)
-
+        with st.form(key=f'form_{i}'):
+            answare = st.text_area('Your Solution:', key=f'solution_{i}', height=10)
+            st.form_submit_button('Submit Solution', on_click=submit_solution, args=[answare])
 #Creating a button to move to the next level
 def next_level(level, progress_bar):
     st.write('\n')
@@ -74,7 +122,7 @@ def next_level(level, progress_bar):
         task_name = random.choice(level)
         st.session_state['tasks'].append(task_name)
         progress_bar.progress(min(st.session_state['level'] / 4, 1))
-        st.experimental_rerun()
+        st.rerun()
 
 # Function to show the answer
 def show_answer():
@@ -91,7 +139,7 @@ def select_level():
     if st.sidebar.button('Start Selected Level'):
         st.session_state['level'] = selected_level
         st.session_state['tasks'] = [random.choice(levels[i]) for i in range(1, selected_level+1)]
-        st.experimental_rerun()
+        st.rerun()
 
 #Creating a button to finish the exam
 def finish_exam(progress_bar):
@@ -99,11 +147,11 @@ def finish_exam(progress_bar):
     if st.button('Finish Exam'):
         st.session_state['level'] += 1
         progress_bar.progress(min(st.session_state['level'] / 4, 1))
-        st.experimental_rerun()
+        st.rerun()
 
 #Creating a button to start over
 def start_over():
     if st.button('Start Over'):
         st.session_state['level'] = 0
         st.session_state['tasks'] = []
-        st.experimental_rerun()
+        st.rerun()
